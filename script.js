@@ -1,3 +1,12 @@
+//Create New Error instance
+class ServerError extends Error {
+    constructor(message, statusCode) {
+        super(message);
+        this.statusCode = statusCode
+    }
+}
+
+//Work with DOM
 const createNewRepo = (parentElem, repoName, repoOwner, repoStars) => {
     const deleteCardHandler = (event, btn, element) => {
         if (event.target === btn) {
@@ -59,12 +68,24 @@ const deleteSearchResults = () => {
 }
 const showResults = async (text, pagesize=5) => {
     const autocomplete = document.querySelector('.autocomplite')
-    fetch(`https://api.github.com/search/repositories?q=${text}&per_page=${pagesize}`)
-    .then(res=>res.json()).then(resp=>{
-        resp.items.forEach(el=>{
-            createSearchResult(autocomplete, el.name, el)
-        })
-    })
+    try {
+        let response = await fetch(`https://api.github.com/search/repositories?q=${text}&per_page=${pagesize}`)
+        let resultResponse = await response.json()
+        if (response.status === 200) {
+            resultResponse.items.forEach(el=>createSearchResult(autocomplete, el.name, el))
+        } else if (response.status > 399 && response.status<=499) {
+            throw new ServerError('Server Error', response.status)
+        } else {
+            throw new Error('Something went wrong')
+        }
+    } catch (error) {
+        if (error instanceof ServerError) {
+            console.log(`Response server with code ${error.statusCode} and message: "${error.message}"`)
+        } else {
+            console.log('Unexpected error from server')
+        }
+        alert('Server error, check the console for learn more')
+    }
 }
 const deleteValueFromInput = (input) => {
     input.value=''
